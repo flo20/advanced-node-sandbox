@@ -1,0 +1,52 @@
+//these are the get handlers
+
+"use strict";
+
+const path = require("path");
+const url = require("url");
+
+const { read, send, sendJson, isIn, redirectError } = require("./handler");
+const { config } = require("process");
+
+module.exports = (baseDir) => {
+  const get = require(path.join(baseDir, "carstorage"));
+  // const menuPath = path.join(baseDir, "webPages", "menu.html",)
+  const config = require(path.join(baseDir, "config.json"));
+  const menuPath = path.join(baseDir, config.WEBPAGES, config.MENU);
+  const errorPath = path.join(baseDir, config.WEBPAGES, "errorPage.html");
+  const formPath = path.join(baseDir, config.WEBPAGES, "form.html");
+
+  const resourcePaths = ["/favicon", "/styles/", "/images/", "/js/"];
+  const webPagePaths = [`/${config.WEBPAGES}/`];
+
+  return async (req, res) => {
+    const route = decodeURIComponent(url.parse(req.url).pathname);
+    try {
+      if (route === "/") {
+        const result = await read(menuPath);
+        send(res, result);
+      } else if (route === "/getAll") {
+        sendJson(res, get());
+      } else if (route === "/form") {
+        let result = await read(formPath);
+        //console.log(result);
+        result.fileData = result.fileData.replace("**MODEL**", "");
+        result.fileData = result.fileData.replace("**LICENCE**", "");
+        //console.log(result.fileData);
+        send(res, result);
+      } else if (isIn(route, ...webPagePaths, ...resourcePaths)) {
+        const result = await read(path.join(baseDir, route));
+        send(res, result);
+      } else if (route === "/error") {
+        const message = url.parse(req.url, true).query.message;
+        const result = await read(errorPath);
+        result.fileData = result.fileData.replace("**MESSAGE**", message);
+        send(res, result);
+      } else {
+        redirectError(res, "Resource not found");
+      }
+    } catch (err) {
+      redirectError(res, "Not found");
+    }
+  };
+};

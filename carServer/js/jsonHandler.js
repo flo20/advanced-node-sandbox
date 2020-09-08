@@ -1,0 +1,25 @@
+"use strict";
+
+(function () {
+    let searchCriterion;
+    document.addEventListener("DOMContentLoaded", init);
+
+    function init() {
+        searchCriterion = document.getElementById("searchCriterion")
+        document.getElementById("sendjson").addEventListener("click",update)
+    }
+    async function update() {
+        try {
+            const result = await fetch("/jsonencoded", {
+                method: "POST",
+                body: JSON.stringify({ licence: searchCriterion.value }),
+                "headers": {
+                    "Contet-Type":"application/json"
+                }
+            })
+            updatePage(await result.json())
+        } catch (err) {
+            showError(err.message)
+        }
+    }
+})();
